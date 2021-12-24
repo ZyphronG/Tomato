@@ -1,3 +1,9 @@
+#if !defined(_WIN32) && !defined(_WIN64)
+#include <byteswap.h>
+#define _byteswap_ushort bswap_16
+#define _byteswap_ulong bswap_32
+#endif
+
 #include <fstream>
 #include <iostream>
 #include <cstring>
@@ -6,12 +12,6 @@
 #include "Bcsv.cpp"
 #include "XML.cpp"
 #include "FileHolder.cpp"
-
-#if !defined(_WIN32) && !defined(_WIN64)
-#include <byteswap.h>
-#define _byteswap_ushort bswap_16
-#define _byteswap_ulong bswap_32
-#endif
 
 
 
