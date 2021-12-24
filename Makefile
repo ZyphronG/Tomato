@@ -8,3 +8,6 @@ endif
 
 $(TOMATO): source/Tomato.cpp
 	$(CPP) -Os -I include/ -ffunction-sections -fdata-sections -Wl,--gc-sections -s -Wno-multichar -Wall -o $@ $<
+
+clean:
+	rm -f $(TOMATO)
