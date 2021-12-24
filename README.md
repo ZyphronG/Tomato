@@ -5,7 +5,7 @@
 
 Hello! This is my first tool so please go easy on me.
 
-This tool can convert Super Mario Galaxy .bmg / .tbl files to .xml and back to .bmg / .tbl! The .tbl will be sorted as well so no need to worry about that. It also converts flows from the .bmg to .xml and back to .bmg.
+This tool can convert Super Mario Galaxy .bmg / .tbl files to .xml and back to .bmg / .tbl! The .tbl will be sorted as well so no need to worry about that. It also converts flows from the .bmg to .xml and back to .bmg. Tomato supports both big and little endian so both the original Wii version as well as the Super Mario 3D All-Stars version are compatible.
 
 Please report bugs and other issues!
 
