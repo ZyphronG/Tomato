@@ -107,13 +107,7 @@ bool BmgFileHolder::loadBmg() {
 	}
 }
 
-unsigned char BmgFileHolder::getTextDataByEndian(unsigned long Offset, bool getMetaData) const {
-	// check if the system is big endian
-	if ( (!isSwapEndian && isBmgBigEndian) || (isSwapEndian && !isBmgBigEndian) )
-		return *((unsigned char*)DataSection->getTextData(Offset) + 1 - getMetaData);	// big endian
-	else
-		return *((unsigned char*)DataSection->getTextData(Offset) + getMetaData);	// little endian
-}
+
 
 
 
@@ -143,7 +137,7 @@ bool XmlWriter::writeXml() {
 	ConvertedFlowStorage = new char[BMG->FlowSection->NodeNum];
 	memset(ConvertedFlowStorage, 0, BMG->FlowSection->NodeNum);
 
-	outFile.open(FileName, ios::out);
+	outFile.open(FileName, std::ios::out);
 
 	for (unsigned long i = 0; i < BMG->InfoSection->EntryNum; i++) {
 		MESGbmg1::INF1Entry* InfEnt = BMG->InfoSection->getInfoData(i);
@@ -223,7 +217,7 @@ void XmlWriter::createAndWriteMessage(unsigned long Index) {
 	unsigned char character;
 	
 	while (true) {
-		character = BMG->getTextDataByEndian(TextOffset, false);
+		character = *BMG->DataSection->getTextData(TextOffset);
 
 		if (character == 0)
 			break;
@@ -250,9 +244,9 @@ void XmlWriter::createAndWriteMessage(unsigned long Index) {
 }
 
 unsigned long XmlWriter::createEventText(unsigned long TextOffset) {
-	unsigned char EntrySize = BMG->getTextDataByEndian(TextOffset + 2, true);
-	unsigned char EntryType = BMG->getTextDataByEndian(TextOffset + 2, false);
-	unsigned long EntryTypeType = BMG->getTextDataByEndian(TextOffset + 4, false);
+	unsigned char EntrySize = *((unsigned char*)BMG->DataSection->getTextData(TextOffset + 2));
+	unsigned char EntryType = *((unsigned char*)BMG->DataSection->getTextData(TextOffset + 2) + 1);
+	unsigned long EntryTypeType = *BMG->DataSection->getTextData(TextOffset + 4);
 	
 	if (EntryType == 1) {
 		switch (EntryTypeType) {
@@ -275,7 +269,7 @@ unsigned long XmlWriter::createEventText(unsigned long TextOffset) {
 			outFile << "<sound src=\"";
 			unsigned char counter = 6;
 			while (counter < EntrySize) {
-				outFile << BMG->getTextDataByEndian(TextOffset + counter, false);
+				outFile << *((unsigned char*)BMG->DataSection->getTextData(TextOffset + counter) + 1);
 				counter += 2;
 			}
 			outFile << "\"/>";
@@ -301,21 +295,27 @@ unsigned long XmlWriter::createEventText(unsigned long TextOffset) {
 	else if (EntryType == 5) {
 		if (EntryTypeType == 0) {
 			outFile << "<player name=\"";
-			wchar_t NameType = *BMG->DataSection->getTextData(TextOffset + 6);
-			if (NameType == 0x0) outFile << "normal";
-			else if (NameType == 0x100) outFile << "formal";
-			else if (NameType == 0x200) outFile << "moustache";
+			unsigned char NameType = *(unsigned char*)BMG->DataSection->getTextData(TextOffset + 6);
+			if (NameType == 0) outFile << "normal";
+			else if (NameType == 1) outFile << "formal";
+			else if (NameType == 2) outFile << "moustache";
 			else outFile << NameType;
 			outFile << "\"/>";
 		}
 		else goto TemporarySolution;
 	}
+	else if (EntryType == 6) {
+		outFile << "<valInt arg1=\"" << EntryTypeType << "\" arg2=\"" << *(long*)BMG->DataSection->getTextData(TextOffset + 6) << "\" arg3=\"" << *(long*)BMG->DataSection->getTextData(TextOffset + 10) << "\"/>";
+	}
+	else if (EntryType == 7) {
+		outFile << "<valStr arg1=\"" << EntryTypeType << "\" arg2=\"" << *(long*)BMG->DataSection->getTextData(TextOffset + 6) << "\" arg3=\"" << *(long*)BMG->DataSection->getTextData(TextOffset + 10) << "\"/>";
+	}
 	else if (EntryType == 255) {
 		if (EntryTypeType == 0) {
-			const char* FontColorName = MESGbmg1::getColorName(*BMG->DataSection->getTextData(TextOffset + 6));
+			const char* FontColorName = MESGbmg1::getColorName(*(unsigned char*)BMG->DataSection->getTextData(TextOffset + 6));
 			outFile << "<font color=\"";
 			if (FontColorName) outFile << FontColorName;
-			else outFile << *BMG->DataSection->getTextData(TextOffset + 6);
+			else outFile << (unsigned short)*(unsigned char*)BMG->DataSection->getTextData(TextOffset + 6);
 			outFile << "\"/>";
 		}
 		else goto TemporarySolution;
@@ -649,12 +649,12 @@ bool BmgWriter::writeBmg(bool pIsLe) {
 		BMG->FlowSection->swapEndian();
 	}
 
-	ofstream out;
-	out.open(mTblFileName, ios::out | ios::binary);
+	std::ofstream out;
+	out.open(mTblFileName, std::ios::out | std::ios::binary);
 	out.write((char*)bcsv, size);
 	out.close();
 
-	out.open(BMG->mFileHolder.mFileName, ios::out | ios::binary);
+	out.open(BMG->mFileHolder.mFileName, std::ios::out | std::ios::binary);
 	out.write(BMG->mFileHolder.mFileData, SizeTmp);
 	out.close();
 
@@ -935,7 +935,7 @@ void BmgTextGenerator::createAndAddEventData(const char* pXmlEntry) {
 		if (mXmlSubEntry.getEntryInfo("src", TagData)) {
 			// copy sound name into bmg text
 			for (unsigned long counter = 0; counter < strlen(TagData); counter++)
-				writeChar(TagData[counter]);
+				writeSingleChar(TagData[counter], true);
 		}
 		else
 			writeChar(0);
@@ -959,7 +959,7 @@ void BmgTextGenerator::createAndAddEventData(const char* pXmlEntry) {
 		else if (mXmlSubEntry.getEntryInfo("color", TagData)) {
 			writeEvent(255, 8);				// write event type and size
 			writeChar(0);					// write event type type
-			writeChar(MESGbmg1::getColorNameId(TagData));
+			writeSingleChar(MESGbmg1::getColorNameId(TagData));
 		}
 		else return;	// skip event entry
 	}
@@ -967,13 +967,31 @@ void BmgTextGenerator::createAndAddEventData(const char* pXmlEntry) {
 		writeEvent(5, 8);				// write event type and size
 		writeChar(0);					// write event type type
 		if (mXmlSubEntry.getEntryInfo("name", TagData)) {
-			if (strcmp(TagData, "normal") == 0) writeChar(0x0);
-			else if (strcmp(TagData, "formal") == 0) writeChar(0x100);
-			else if (strcmp(TagData, "moustache") == 0) writeChar(0x200);
-			else writeChar(atoi(TagData));
+			if (strcmp(TagData, "normal") == 0) writeSingleChar(0);
+			else if (strcmp(TagData, "formal") == 0) writeSingleChar(1);
+			else if (strcmp(TagData, "moustache") == 0) writeSingleChar(2);
+			else writeSingleChar(atoi(TagData));
 		}
 		else
 			writeChar(0);
+	}
+	else if (mXmlSubEntry.getEntry("valInt", pXmlEntry)) {
+		writeEvent(6, 14);
+		if (mXmlSubEntry.getEntryInfo("arg1", TagData)) writeChar(atoi(TagData));
+		else writeChar(0);
+		if (mXmlSubEntry.getEntryInfo("arg2", TagData)) writeLong(atoi(TagData));
+		else writeLong(0);
+		if (mXmlSubEntry.getEntryInfo("arg3", TagData)) writeLong(atoi(TagData));
+		else writeLong(0);
+	}
+	else if (mXmlSubEntry.getEntry("valStr", pXmlEntry)) {
+		writeEvent(7, 14);
+		if (mXmlSubEntry.getEntryInfo("arg1", TagData)) writeChar(atoi(TagData));
+		else writeChar(0);
+		if (mXmlSubEntry.getEntryInfo("arg2", TagData)) writeLong(atoi(TagData));
+		else writeLong(0);
+		if (mXmlSubEntry.getEntryInfo("arg3", TagData)) writeLong(atoi(TagData));
+		else writeLong(0);
 	}
 }
 
@@ -984,14 +1002,30 @@ void BmgTextGenerator::writeChar(wchar_t pChar) {
 }
 
 void BmgTextGenerator::writeEvent(unsigned char pEventType, unsigned char pLength) {
-	wchar_t Tmp = pEventType + pLength * 0x100;
 	// write event tag start char
 	writeChar(0x1A);
-	writeChar(Tmp);
+	unsigned char* WriteAdr = (unsigned char*)(&mMessageData[mMessagePos]);
+	*WriteAdr = pLength;
+	WriteAdr++;
+	*WriteAdr = pEventType;
+	mMessagePos++;
 }
 
 void BmgTextGenerator::writeEventLength(unsigned long pEventStartOffset) {
-	mMessageData[pEventStartOffset+1] += (mMessagePos - pEventStartOffset) *0x200;
+	unsigned char* WriteAdr = (unsigned char*)(&mMessageData[pEventStartOffset + 1]);
+	*WriteAdr = (mMessagePos - pEventStartOffset) * 2;
+}
+
+void BmgTextGenerator::writeSingleChar(unsigned char pChar, bool pSide) {
+	writeChar(0);
+	unsigned char* WriteAdr = (unsigned char*)(&mMessageData[mMessagePos - 1]) + pSide;
+	*WriteAdr = pChar;
+}
+
+void BmgTextGenerator::writeLong(long pLong) {
+	long* WriteAdr = (long*)(&mMessageData[mMessagePos]);
+	*WriteAdr = pLong;
+	mMessagePos += 2;
 }
 
 

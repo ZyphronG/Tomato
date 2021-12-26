@@ -11,7 +11,6 @@ public:
 	BmgFileHolder(const char* FileName);
 
 	bool loadBmg();
-	unsigned char getTextDataByEndian(unsigned long Offset, bool getMetaData) const;
 
 	FileHolder mFileHolder;
 	MESGbmg1::FileHeader* Header;
@@ -52,6 +51,8 @@ public:
 	void writeChar(wchar_t pChar);
 	void writeEvent(unsigned char pEventType, unsigned char pLength);
 	void writeEventLength(unsigned long pEventStartOffset);
+	void writeSingleChar(unsigned char pChar, bool pSide = false);
+	void writeLong(long pLong);
 
 	XMLSubEntry mXmlSubEntry;
 	unsigned long mMessagePos;

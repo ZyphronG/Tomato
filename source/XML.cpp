@@ -9,7 +9,7 @@ unsigned long XmlUtil::getNumberOfEntries(const char* pEntryName, FileHolder* pX
     unsigned long EntryCount = 0;
 
     while (true) {
-		if (!XmlEntry.findEntry(pEntryName, XmlOffset, false))
+		if (!XmlEntry.findEntry(pEntryName, XmlOffset))
 			break;
 
 		if (XmlEntry.mEntryStart)
@@ -29,7 +29,7 @@ bool XmlUtil::getEntryByIndex(const char* pEntryName, unsigned long pIndex, File
     unsigned long EntryCount = 0;
 
     while (true) {
-		if (!XmlEntry.findEntry(pEntryName, XmlOffset, false))
+		if (!XmlEntry.findEntry(pEntryName, XmlOffset))
 			return false;
 
 		if (XmlEntry.mEntryStart) {
@@ -281,9 +281,9 @@ bool XMLEntry::getEntryInfo(const char* pEntryInfoName, char* pOutputString) {
 
 bool XMLEntry::getNextEntry(const char* pEntryName) {
     if (mEntryEnd)
-        return findEntry(pEntryName, mEntryEnd - mXmlFile->mFileData, false);
+        return findEntry(pEntryName, mEntryEnd - mXmlFile->mFileData);
     else
-        return findEntry(pEntryName, 0, false);
+        return findEntry(pEntryName, 0);
 }
 
 char* XMLEntry::getEntryData() const {
@@ -316,7 +316,7 @@ char* XMLEntry::getEntryData() const {
 
 bool XMLEntry::getEntry(const char* pEntryName, const char* pXmlEntry) {
     if (XmlUtil::isEqualEntryName(pEntryName, pXmlEntry)) {
-        if (findEntry(pEntryName, pXmlEntry - mXmlFile->mFileData, false) && mEntryStart == pXmlEntry)
+        if (findEntry(pEntryName, pXmlEntry - mXmlFile->mFileData) && mEntryStart == pXmlEntry)
             return true;
     }
         
@@ -341,7 +341,7 @@ XMLSubEntry::XMLSubEntry(const XMLEntry* pXmlParentEntry) : XMLEntry(pXmlParentE
 }
 
 bool XMLSubEntry::findSubEntry(const char* pEntryName) {
-    if (mXmlParentEntry->mIsLongEntry && findEntry(pEntryName, mXmlParentEntry->mEntryStart - mXmlParentEntry->mXmlFile->mFileData, false) && mEntryStart < mXmlParentEntry->mEntryEnd)
+    if (mXmlParentEntry->mIsLongEntry && findEntry(pEntryName, mXmlParentEntry->mEntryStart - mXmlParentEntry->mXmlFile->mFileData) && mEntryStart < mXmlParentEntry->mEntryEnd)
         return true;
     else {
         reset();
@@ -350,7 +350,7 @@ bool XMLSubEntry::findSubEntry(const char* pEntryName) {
 }
 
 bool XMLSubEntry::findSubEntry(const char* pEntryName, unsigned long pOffset) {
-    if (mXmlParentEntry->mIsLongEntry && findEntry(pEntryName, (mXmlParentEntry->mEntryStart + pOffset) - mXmlParentEntry->mXmlFile->mFileData, false) && mEntryStart < mXmlParentEntry->mEntryEnd)
+    if (mXmlParentEntry->mIsLongEntry && findEntry(pEntryName, (mXmlParentEntry->mEntryStart + pOffset) - mXmlParentEntry->mXmlFile->mFileData) && mEntryStart < mXmlParentEntry->mEntryEnd)
         return true;
     else {
         reset();

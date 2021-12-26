@@ -32,25 +32,11 @@ namespace MESGbmg1 {
 	}
 
 	const char* getColorName(unsigned long i) {
-		if (i % 0x100 != 0)
-			return 0;
-		
-		return getElementFromTable(FontColorNames, sizeof(FontColorNames)/sizeof(char*), i/0x100);
+		return getElementFromTable(FontColorNames, sizeof(FontColorNames)/sizeof(char*), i);
 	}
 
 	unsigned long getColorNameId(const char* pFontColorName) {
-		unsigned long i = 0;
-		while (true) {
-			const char* FontColorName = getColorName(i*0x100);
-
-			if (!FontColorName)
-				return atoi(pFontColorName);
-
-			if (strcmp(pFontColorName, FontColorName) == 0)
-				return i * 0x100;
-
-			i++;
-		}
+		return getElementIndexFromTable(FontColorNames, sizeof(FontColorNames)/sizeof(char*), pFontColorName);
 	}
 
 	const char* getSoundIDName(unsigned char i) {
@@ -207,8 +193,38 @@ namespace MESGbmg1 {
 		wchar_t* MessageData = getTextData(0);
 		SectionSizeTmp = (SectionSizeTmp - sizeof(DAT1)) / 2;
 
-		for (unsigned long i = 0; i < SectionSizeTmp; i++)
+		for (unsigned long i = 0; i < SectionSizeTmp; i++) {
 			MessageData[i] = _byteswap_ushort(MessageData[i]);
+
+			// event tag
+			if ( (Magic == 'DAT1' && MessageData[i] == 0x1A) || (Magic != 'DAT1' && MessageData[i] == 0x1A00) ) {
+				i++;
+				unsigned char EventSize = *((unsigned char*)&MessageData[i]);
+				unsigned char EventType = *((unsigned char*)&MessageData[i] + 1);
+				i++;
+
+				if (EventType == 2 || EventType == 5 || EventType == 0xFF) {
+					MessageData[i] = _byteswap_ushort(MessageData[i]);	// swap EventTypeType
+					i += (EventSize/2) - 3;		// skip the rest of the event
+				}
+				else if (EventType == 6 || EventType == 7) {
+					MessageData[i] = _byteswap_ushort(MessageData[i]);		// swap EventTypeType
+					unsigned long* C = (unsigned long*)(&MessageData[i + 1]);
+					*C = _byteswap_ulong(*C);
+					C++;
+					*C = _byteswap_ulong(*C);
+					i += (EventSize/2) - 3;		// skip the rest of the event
+				}
+				else {
+					// swap endian
+					for (unsigned long f = 0; f < EventSize / 2 - 2; f++) {
+						MessageData[i] = _byteswap_ushort(MessageData[i]);
+						i++;
+					}
+					i--;
+				}
+			}
+		}
 	}
 
 	wchar_t* DAT1::getTextData(unsigned long Offset) {

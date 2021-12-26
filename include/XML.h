@@ -8,7 +8,7 @@ public:
     XMLEntry();
     XMLEntry(FileHolder* pFileHolder);
 
-    bool findEntry(const char* pEntryName, unsigned long pOffset, bool pOnlySearchForEntryStart);
+    bool findEntry(const char* pEntryName, unsigned long pOffset, bool pOnlySearchForEntryStart = false);
     char* getEndOfLongEntry(char* pXmlParser);
     bool getEntryInfo(const char* pEntryInfoName, char* pOutputString);
     bool getNextEntry(const char* pEntryName);
