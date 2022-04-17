@@ -1,3 +1,8 @@
 .vscode
 *.exe
+*.dll
+*.zip
 Tomato
+*.bmg
+*.xml
+*.tbl

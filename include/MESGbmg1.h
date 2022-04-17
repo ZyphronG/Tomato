@@ -1,32 +1,34 @@
 #pragma once
 
+#include "Types.h"
+
 namespace MESGbmg1 {
 
     // Base Util
-    const char* getElementFromTable(const char** pTable, unsigned long pNumOfElements, unsigned long pIndex);
-    unsigned long getElementIndexFromTable(const char** pTable, unsigned long pNumOfElements, const char* pElementToSearchFor);
+    const char* getElementFromTable(const char** pTable, u32 pNumOfElements, u32 pIndex);
+    u32 getElementIndexFromTable(const char** pTable, u32 pNumOfElements, const char* pElementToSearchFor);
 
     // message util
-    const char* getIconName(unsigned long);
-	unsigned long getIconNameId(const char* pIconName);
-	const char* getColorName(unsigned long);
-	unsigned long getColorNameId(const char* pFontColorName);
-	const char* getSoundIDName(unsigned char);
-	unsigned long getSoundNameIDID(const char* pSoundIDName);
-    const char* getMessageTypeName(unsigned char);
-    unsigned long getMessageTypeNameID(const char* pMessageTypeName);
-    const char* getCamTypeName(unsigned char);
-    unsigned long getCamTypeNameID(const char* pCamTypeName);
-    const char* getTextBoxTypeName(unsigned char);
-    unsigned long getTextBoxTypeNameID(const char* pTextBoxTypeName);
+    const char* getIconName(u32);
+	u32 getIconNameId(const char* pIconName);
+	const char* getColorName(u32);
+	u32 getColorNameId(const char* pFontColorName);
+	const char* getSoundIDName(u8);
+	u32 getSoundNameIDID(const char* pSoundIDName);
+    const char* getMessageTypeName(u8);
+    u32 getMessageTypeNameID(const char* pMessageTypeName);
+    const char* getCamTypeName(u8);
+    u32 getCamTypeNameID(const char* pCamTypeName);
+    const char* getTextBoxTypeName(u8);
+    u32 getTextBoxTypeNameID(const char* pTextBoxTypeName);
 
     // flow util
-    const char* getConditionNodeType(unsigned long);
-    unsigned long getConditionNodeTypeID(const char*);
-    const char* getConditionMultipleChoice(unsigned long);
-    unsigned long getConditionMultipleChoiceID(const char*);
-    const char* getEventType(unsigned long);
-    unsigned long getEventTypeID(const char*);
+    const char* getConditionNodeType(u32);
+    u32 getConditionNodeTypeID(const char*);
+    const char* getConditionMultipleChoice(u32);
+    u32 getConditionMultipleChoiceID(const char*);
+    const char* getEventType(u32);
+    u32 getEventTypeID(const char*);
 
 
     // documenting and writing these lists was a pain.
@@ -331,11 +333,11 @@ namespace MESGbmg1 {
         void swapEndian();
         void setUp();
 
-	    unsigned long FileHeaderMagic;	//_0
-        unsigned long SectionMagic;  //_4
-	    unsigned long FLW1SectionAdr;	//_8
-	    unsigned long SectionNum;	//_C
-	    unsigned char unk;	//_10 unknown but usually 2
+	    uint32_t FileHeaderMagic;	//_0
+        uint32_t SectionMagic;  //_4
+	    uint32_t FLW1SectionAdr;	//_8
+	    uint32_t SectionNum;	//_C
+	    uint8_t unk;	//_10 unknown but usually 2
 	    char Padding[15];	//_11
     };
 
@@ -345,33 +347,33 @@ namespace MESGbmg1 {
         void swapEndian();
         void addPadding();
 
-        unsigned long Magic;    //_0
-        unsigned long SectionSize;  //_4
+        u32 Magic;    //_0
+        u32 SectionSize;  //_4
     };
 
 
 
 
     struct INF1Entry {
-        unsigned long TextAddress;  //_0
-        unsigned short CameraId;    //_4
-        unsigned char SoundId;  //_6
-        unsigned char CamType;    //_7; 0 = false, 1 = use given CameraId
-        unsigned char MessageType; //_8; 0 = Talk, 1 = Shout, 2 = auto start Talk, 3 = unknow / game crash, 4 = Empty Message (used for flows)
-        unsigned char MessageBoxType; //_9; 0 = normal, 4 = Sign Board
-        unsigned char MessageAreaId;    //_A; 255 = invalid
-        unsigned char Unknown;  //_B seems to be always 255
+        u32 TextAddress;  //_0
+        u16 CameraId;    //_4
+        u8 SoundId;  //_6
+        u8 CamType;    //_7; 0 = false, 1 = use given CameraId
+        u8 MessageType; //_8; 0 = Talk, 1 = Shout, 2 = auto start Talk, 3 = unknow / game crash, 4 = Empty Message (used for flows)
+        u8 MessageBoxType; //_9; 0 = normal, 4 = Sign Board
+        u8 MessageAreaId;    //_A; 255 = invalid
+        u8 Unknown;  //_B seems to be always 255
     };
 
     class INF1 : public SectionBase {
     public:
 
         void swapEndian();
-        INF1Entry* getInfoData(unsigned long IndexID);
-        void setUp(unsigned long pEntryNum);
+        INF1Entry* getInfoData(u32 IndexID);
+        void setUp(u32 pEntryNum);
 
-        unsigned short EntryNum;    //_8
-        unsigned short EntrySize;   //_A
+        u16 EntryNum;    //_8
+        u16 EntrySize;   //_A
         char Padding[4];    //_C
     };
 
@@ -382,7 +384,7 @@ namespace MESGbmg1 {
     public:
 
         void swapEndian();
-        wchar_t* getTextData(unsigned long Offset);
+        c16* getTextData(u32 Offset);
         void setUp();
     };
 
@@ -390,27 +392,27 @@ namespace MESGbmg1 {
 
 
     struct NodeEntryText {
-        unsigned char FlowType;     //_0
-        unsigned char Unk1;         //_1
-        unsigned short TextId;      //_2
-        unsigned short NextFlowId;  //_4
-        unsigned char Validity;     //_6
-        unsigned char Unk2;         //_7
+        u8 FlowType;     //_0
+        u8 Unk1;         //_1
+        u16 TextId;      //_2
+        u16 NextFlowId;  //_4
+        u8 Validity;     //_6
+        u8 Unk2;         //_7
     };
 
     struct NodeEntryCondition {
-        unsigned char FlowType;         //_0
-        unsigned char Unk1;             //_1
-        unsigned short ConditionType;   //_2
-        unsigned short Arg;             //_4
-        unsigned short BranchNodeId;    //_6
+        u8 FlowType;         //_0
+        u8 Unk1;             //_1
+        u16 ConditionType;   //_2
+        u16 Arg;             //_4
+        u16 BranchNodeId;    //_6
     };
 
     struct NodeEntryEvent {
-        unsigned char FlowType;         //_0
-        unsigned char EventType;        //_1
-        unsigned short BranchNodeId;    //_2
-        unsigned long Arg;              //_4
+        u8 FlowType;         //_0
+        u8 EventType;        //_1
+        u16 BranchNodeId;    //_2
+        u32 Arg;              //_4
     };
 
     class FLW1 : public SectionBase {
@@ -418,13 +420,13 @@ namespace MESGbmg1 {
 
         void swapEndian();
         void setUp();
-        NodeEntryText* getNodeEntry(unsigned long Index);
-        unsigned short* getBranchNode(unsigned long Index);
-        char* getBranchNodeValid(unsigned long Index);
+        NodeEntryText* getNodeEntry(u32 Index);
+        u16* getBranchNode(u32 Index);
+        char* getBranchNodeValid(u32 Index);
         void createBranchValiditySection();
 
-        unsigned short NodeNum;    //_8
-        unsigned short BranchNodeNum;   //_A
+        u16 NodeNum;    //_8
+        u16 BranchNodeNum;   //_A
         char Padding[4];    //_C
     };
 
@@ -434,8 +436,8 @@ namespace MESGbmg1 {
     class FLI1 : public SectionBase {
     public:
 
-        unsigned short EntryNum;    //_8
-        unsigned char EntryLength;  //_A
+        u16 EntryNum;    //_8
+        u8 EntryLength;  //_A
         char Padding[5];    //_B
     };
 }

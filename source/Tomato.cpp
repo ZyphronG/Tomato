@@ -7,7 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
-#include "Tomato.h"
+#include "../include/Tomato.h"
 #include "MESGbmg1.cpp"
 #include "Bcsv.cpp"
 #include "XML.cpp"
@@ -30,7 +30,7 @@ bool BmgFileHolder::loadBmg() {
 		std::cout << "The BMG's file size is " << mFileHolder.mFileSize << ".\n";
 
 		// check endian
-		unsigned long HeaderName = ((MESGbmg1::FileHeader*)mFileHolder.mFileData)->FileHeaderMagic;
+		u32 HeaderName = ((MESGbmg1::FileHeader*)mFileHolder.mFileData)->FileHeaderMagic;
 		if (HeaderName == 'GSEM')
 			isSwapEndian = true;
 		else if (HeaderName != 'MESG') {
@@ -59,10 +59,10 @@ bool BmgFileHolder::loadBmg() {
 			std::cout << "WARNING: There are more than the usual 4 Sections in the given BMG.\n";
 
 		// set up sections from Raw Bmg
-		unsigned long MagicTmp;
+		u32 MagicTmp;
 		MESGbmg1::SectionBase* SecBase = (MESGbmg1::SectionBase*)(mFileHolder.mFileData + sizeof(MESGbmg1::FileHeader));
 
-		for (unsigned long i = 0; i < Header->SectionNum; i++) {
+		for (u32 i = 0; i < Header->SectionNum; i++) {
 			// load the Magic considering the Endian
 			if (isSwapEndian)
 				MagicTmp = _byteswap_ulong(SecBase->Magic);
@@ -129,7 +129,7 @@ XmlWriter::XmlWriter(const char* pXmlFileName, const BmgFileHolder* pBMG, const 
 }
 
 bool XmlWriter::writeXml() {
-	char XMLEntry[256];
+	char XMLEntry[512];
 	char MessageTypeName[64];
 	char MessageTextBoxTypeName[64];
 	char MessageSoundName[64];
@@ -139,7 +139,7 @@ bool XmlWriter::writeXml() {
 
 	outFile.open(FileName, std::ios::out);
 
-	for (unsigned long i = 0; i < BMG->InfoSection->EntryNum; i++) {
+	for (u32 i = 0; i < BMG->InfoSection->EntryNum; i++) {
 		MESGbmg1::INF1Entry* InfEnt = BMG->InfoSection->getInfoData(i);
 		const char* MessageID = getStringFromBcsv(i);
 
@@ -148,21 +148,21 @@ bool XmlWriter::writeXml() {
 		if (MessageID) {
 			const char* StoreChar = MESGbmg1::getMessageTypeName(InfEnt->MessageType);
 			if (StoreChar) strcpy(MessageTypeName, StoreChar);
-			else sprintf(MessageTypeName, "%d", InfEnt->MessageType);
+			else snprintf(MessageTypeName, 64, "%d", InfEnt->MessageType);
 
 			StoreChar = MESGbmg1::getTextBoxTypeName(InfEnt->MessageBoxType);
 			if (StoreChar) strcpy(MessageTextBoxTypeName, StoreChar);
-			else sprintf(MessageTextBoxTypeName, "%d", InfEnt->MessageBoxType);
+			else snprintf(MessageTextBoxTypeName, 64, "%d", InfEnt->MessageBoxType);
 
 			StoreChar = MESGbmg1::getSoundIDName(InfEnt->SoundId);
 			if (StoreChar) strcpy(MessageSoundName, StoreChar);
-			else sprintf(MessageSoundName, "%d", InfEnt->SoundId);
+			else snprintf(MessageSoundName, 64, "%d", InfEnt->SoundId);
 
 			StoreChar = MESGbmg1::getCamTypeName(InfEnt->CamType);
 			if (StoreChar) strcpy(MessageCamTypeName, StoreChar);
-			else sprintf(MessageCamTypeName, "%d", InfEnt->CamType);
+			else snprintf(MessageCamTypeName, 64, "%d", InfEnt->CamType);
 
-			sprintf(XMLEntry,
+			snprintf(XMLEntry, 512,
 			"<message label=\"%s\">\n\t<info messageType=\"%s\" textbox=\"%s\" sound=\"%s\" camType=\"%s\" cameraID=\"%d\" messageArea=\"%d\" alreadyTalked=\"%d\"/>\n",
 			MessageID, MessageTypeName, MessageTextBoxTypeName, MessageSoundName, MessageCamTypeName, InfEnt->CameraId, InfEnt->MessageAreaId, InfEnt->Unknown);
 
@@ -190,7 +190,7 @@ bool XmlWriter::writeXml() {
 	}
 
 	// write non-assigned flows / leftovers
-	for (unsigned long i = 0; i < BMG->FlowSection->NodeNum; i++) {
+	for (u32 i = 0; i < BMG->FlowSection->NodeNum; i++) {
 		if (ConvertedFlowStorage[i] == 0)
 			writeFlows(i, false);
 	}
@@ -202,8 +202,8 @@ bool XmlWriter::writeXml() {
 	return true;
 }
 
-const char* XmlWriter::getStringFromBcsv(unsigned long Index) {
-	unsigned long bcsvIndex = bcsv->findElement("Index", Index);
+const char* XmlWriter::getStringFromBcsv(u32 Index) {
+	u32 bcsvIndex = bcsv->findElement("Index", Index);
 	const char* StringOut;
 
 	if (bcsvIndex < bcsv->mEntryNum && bcsv->getValue(bcsvIndex, "MessageId", &StringOut))
@@ -212,9 +212,9 @@ const char* XmlWriter::getStringFromBcsv(unsigned long Index) {
 		return 0;
 }
 
-void XmlWriter::createAndWriteMessage(unsigned long Index) {
-	unsigned long TextOffset = BMG->InfoSection->getInfoData(Index)->TextAddress;
-	unsigned char character;
+void XmlWriter::createAndWriteMessage(u32 Index) {
+	u32 TextOffset = BMG->InfoSection->getInfoData(Index)->TextAddress;
+	u8 character;
 	
 	while (true) {
 		character = *BMG->DataSection->getTextData(TextOffset);
@@ -243,10 +243,10 @@ void XmlWriter::createAndWriteMessage(unsigned long Index) {
 	}
 }
 
-unsigned long XmlWriter::createEventText(unsigned long TextOffset) {
-	unsigned char EntrySize = *((unsigned char*)BMG->DataSection->getTextData(TextOffset + 2));
-	unsigned char EntryType = *((unsigned char*)BMG->DataSection->getTextData(TextOffset + 2) + 1);
-	unsigned long EntryTypeType = *BMG->DataSection->getTextData(TextOffset + 4);
+u32 XmlWriter::createEventText(u32 TextOffset) {
+	u8 EntrySize = *((u8*)BMG->DataSection->getTextData(TextOffset + 2));
+	u8 EntryType = *((u8*)BMG->DataSection->getTextData(TextOffset + 2) + 1);
+	u32 EntryTypeType = *BMG->DataSection->getTextData(TextOffset + 4);
 	
 	if (EntryType == 1) {
 		switch (EntryTypeType) {
@@ -267,9 +267,9 @@ unsigned long XmlWriter::createEventText(unsigned long TextOffset) {
 	else if (EntryType == 2) {
 		if (EntryTypeType == 0) {
 			outFile << "<sound src=\"";
-			unsigned char counter = 6;
+			u8 counter = 6;
 			while (counter < EntrySize) {
-				outFile << *((unsigned char*)BMG->DataSection->getTextData(TextOffset + counter) + 1);
+				outFile << *((u8*)BMG->DataSection->getTextData(TextOffset + counter) + 1);
 				counter += 2;
 			}
 			outFile << "\"/>";
@@ -295,7 +295,7 @@ unsigned long XmlWriter::createEventText(unsigned long TextOffset) {
 	else if (EntryType == 5) {
 		if (EntryTypeType == 0) {
 			outFile << "<player name=\"";
-			unsigned char NameType = *(unsigned char*)BMG->DataSection->getTextData(TextOffset + 6);
+			u8 NameType = *(u8*)BMG->DataSection->getTextData(TextOffset + 6);
 			if (NameType == 0) outFile << "normal";
 			else if (NameType == 1) outFile << "formal";
 			else if (NameType == 2) outFile << "moustache";
@@ -305,17 +305,20 @@ unsigned long XmlWriter::createEventText(unsigned long TextOffset) {
 		else goto TemporarySolution;
 	}
 	else if (EntryType == 6) {
-		outFile << "<valInt arg1=\"" << EntryTypeType << "\" arg2=\"" << *(long*)BMG->DataSection->getTextData(TextOffset + 6) << "\" arg3=\"" << *(long*)BMG->DataSection->getTextData(TextOffset + 10) << "\"/>";
+		outFile << "<valInt arg1=\"" << EntryTypeType << "\" arg2=\"" << *(s32*)BMG->DataSection->getTextData(TextOffset + 6) << "\" arg3=\"" << *(s32*)BMG->DataSection->getTextData(TextOffset + 10) << "\"/>";
 	}
 	else if (EntryType == 7) {
-		outFile << "<valStr arg1=\"" << EntryTypeType << "\" arg2=\"" << *(long*)BMG->DataSection->getTextData(TextOffset + 6) << "\" arg3=\"" << *(long*)BMG->DataSection->getTextData(TextOffset + 10) << "\"/>";
+		outFile << "<valStr arg1=\"" << EntryTypeType << "\" arg2=\"" << *(s32*)BMG->DataSection->getTextData(TextOffset + 6) << "\" arg3=\"" << *(s32*)BMG->DataSection->getTextData(TextOffset + 10) << "\"/>";
+	}
+	else if (EntryType == 9) {
+		outFile << "<score arg=\"" << EntryTypeType << "\"/>";
 	}
 	else if (EntryType == 255) {
 		if (EntryTypeType == 0) {
-			const char* FontColorName = MESGbmg1::getColorName(*(unsigned char*)BMG->DataSection->getTextData(TextOffset + 6));
+			const char* FontColorName = MESGbmg1::getColorName(*(u8*)BMG->DataSection->getTextData(TextOffset + 6));
 			outFile << "<font color=\"";
 			if (FontColorName) outFile << FontColorName;
-			else outFile << (unsigned short)*(unsigned char*)BMG->DataSection->getTextData(TextOffset + 6);
+			else outFile << (u16)*(u8*)BMG->DataSection->getTextData(TextOffset + 6);
 			outFile << "\"/>";
 		}
 		else goto TemporarySolution;
@@ -323,13 +326,13 @@ unsigned long XmlWriter::createEventText(unsigned long TextOffset) {
 	else {
 		TemporarySolution:
 		char letter = 'a';
-		unsigned char counter = 4;
+		u8 counter = 4;
 		char text[64];
 		// default event text
 		sprintf(text, "<e type=\"%d\"", EntryType);
 		outFile << text;
 		while (counter < EntrySize) {
-			sprintf(text, " %c=\"%d\"", letter, *(unsigned short*)BMG->DataSection->getTextData(TextOffset + counter));
+			sprintf(text, " %c=\"%d\"", letter, *(u16*)BMG->DataSection->getTextData(TextOffset + counter));
 			outFile << text;
 			letter++;
 			counter += 2;
@@ -342,13 +345,13 @@ unsigned long XmlWriter::createEventText(unsigned long TextOffset) {
 
 // this function checks if the message ID text node is referenced by any other node.
 // if not then create flow container
-bool XmlWriter::isNeedWriteFlowSection(unsigned long pMessageId) {
-	for (unsigned long i = 0; i < BMG->FlowSection->NodeNum; i++) {
+bool XmlWriter::isNeedWriteFlowSection(u32 pMessageId) {
+	for (u32 i = 0; i < BMG->FlowSection->NodeNum; i++) {
 		MESGbmg1::NodeEntryText* TextNode = BMG->FlowSection->getNodeEntry(i);
 
 		if (TextNode->FlowType == 1 && TextNode->TextId == pMessageId) {
 			// check for reference of the found node entry in other nodes
-			for (unsigned long c = 0; c < BMG->FlowSection->NodeNum; c++) {
+			for (u32 c = 0; c < BMG->FlowSection->NodeNum; c++) {
 				if (c != i) {
 					MESGbmg1::NodeEntryText* TextNodeSub = BMG->FlowSection->getNodeEntry(c);
 
@@ -379,8 +382,8 @@ bool XmlWriter::isNeedWriteFlowSection(unsigned long pMessageId) {
 	return false;
 }
 
-void XmlWriter::findNodeByMessageID(unsigned long pMessageId) {
-	for (unsigned long i = 0; i < BMG->FlowSection->NodeNum; i++) {
+void XmlWriter::findNodeByMessageID(u32 pMessageId) {
+	for (u32 i = 0; i < BMG->FlowSection->NodeNum; i++) {
 		MESGbmg1::NodeEntryText* TextNode = BMG->FlowSection->getNodeEntry(i);
 
 		if (TextNode->FlowType == 1 && TextNode->TextId == pMessageId)
@@ -388,7 +391,7 @@ void XmlWriter::findNodeByMessageID(unsigned long pMessageId) {
 	}
 }
 
-void XmlWriter::writeFlows(unsigned long pNodeID, bool pIsInContainer) {
+void XmlWriter::writeFlows(u32 pNodeID, bool pIsInContainer) {
 	const char* TemporaryCharStorage;
 
 	if (pNodeID == 0xFFFF || ConvertedFlowStorage[pNodeID] == 1)
@@ -429,7 +432,7 @@ void XmlWriter::writeFlows(unsigned long pNodeID, bool pIsInContainer) {
 
 		outFile << "\" trueNode=\"";
 
-		unsigned short TrueFlow = *BMG->FlowSection->getBranchNode(ConNode->BranchNodeId);
+		u16 TrueFlow = *BMG->FlowSection->getBranchNode(ConNode->BranchNodeId);
 
 		if (TrueFlow == 0xFFFF)
 			outFile << "none";
@@ -437,7 +440,7 @@ void XmlWriter::writeFlows(unsigned long pNodeID, bool pIsInContainer) {
 			outFile << "Node_" << TrueFlow;
 
 		outFile << "\" falseNode=\"";
-		unsigned short FalseFlow = *BMG->FlowSection->getBranchNode(ConNode->BranchNodeId + 1);
+		u16 FalseFlow = *BMG->FlowSection->getBranchNode(ConNode->BranchNodeId + 1);
 
 		if (FalseFlow == 0xFFFF)
 			outFile << "none";
@@ -454,13 +457,13 @@ void XmlWriter::writeFlows(unsigned long pNodeID, bool pIsInContainer) {
 		outFile << "event\" event=\"";
 
 		if (TemporaryCharStorage) outFile << TemporaryCharStorage;
-		else outFile << (short)EventNode->EventType;
+		else outFile << (u16)EventNode->EventType;
 
 		outFile << "\" arg=\"" << EventNode->Arg;
 
 		outFile << "\" nextNode=\"";
 
-		unsigned short NextFlow = *BMG->FlowSection->getBranchNode(EventNode->BranchNodeId);
+		u16 NextFlow = *BMG->FlowSection->getBranchNode(EventNode->BranchNodeId);
 
 		if (NextFlow == 0xFFFF)
 			outFile << "none";
@@ -487,16 +490,18 @@ BmgWriter::BmgWriter(const char* pXmlFileName, const char* pBmgFileName, const c
 	bcsv = 0;
 	XML = new FileHolder(pXmlFileName);
 	mTblFileName = pTblFileName;
+
+	mRandomType = 0;
 }
 
-bool BmgWriter::writeBmg(bool pIsLe) {
+bool BmgWriter::writeBmg(bool pIsLe, u32 RandSeed) {
 	// check for number of entries
 	if (!XML->loadFile()) {
 		std::cout << XML->mFileName << " could not be opened.\n";
 		return false;
 	}
 	
-	unsigned long MessageEntryNum = XmlUtil::getNumberOfEntries("message", XML);
+	u32 MessageEntryNum = XmlUtil::getNumberOfEntries("message", XML);
 
 	// create BCSV
 	bcsv = BCSV::createNewBcsv(MessageEntryNum);
@@ -530,7 +535,7 @@ bool BmgWriter::writeBmg(bool pIsLe) {
 
 	
 
-	for (unsigned long i = 0; i < MessageEntryNum; i++) {
+	for (u32 i = 0; i < MessageEntryNum; i++) {
 		if (XmlEntry.getNextEntry("message") && XmlEntry.getEntryInfo("label", MessageLabel)) {
 
 			std::cout << "\rConverting Entry " << i + 1 << " / " << MessageEntryNum << "..." << std::flush;
@@ -580,18 +585,20 @@ bool BmgWriter::writeBmg(bool pIsLe) {
 			if (XmlSubEntry.findSubEntry("string")) {
 				if (XmlSubEntry.mIsLongEntry) {
 					BmgTextGenerator MessageCreator = BmgTextGenerator(&XmlSubEntry);
+					MessageCreator.mIsRandomActive = mRandomType;
+
 					if (MessageCreator.createMessage())
 						infoEntry->TextAddress = tryAddNewTextData(MessageCreator.mMessageData, MessageCreator.mMessagePos);
 					else {
-						infoEntry->TextAddress = tryAddNewTextData(L"", 1);
+						infoEntry->TextAddress = tryAddNewTextData(u"", 1);
 						std::cout << "\nWarning: " << MessageLabel << " string data is invalid! Empty text will be used instead.\n";
 					}
 				}
 				else
-					infoEntry->TextAddress = tryAddNewTextData(L"", 1);
+					infoEntry->TextAddress = tryAddNewTextData(u"", 1);
 			}
 			else {
-				infoEntry->TextAddress = tryAddNewTextData(L"", 1);
+				infoEntry->TextAddress = tryAddNewTextData(u"", 1);
 				//std::cout << "\nWarning: " << MessageLabel << " has no string data! Empty text will be used instead.\n";
 			}
 		}
@@ -605,12 +612,12 @@ bool BmgWriter::writeBmg(bool pIsLe) {
 	BMG->FlowSection = (MESGbmg1::FLW1*)(BMG->mFileHolder.mFileData + sizeof(MESGbmg1::FileHeader) + BMG->InfoSection->SectionSize + BMG->DataSection->SectionSize);
 	BMG->FlowSection->setUp();
 
-	unsigned long FlowEntryNum = XmlUtil::getNumberOfEntries("node", XML);
+	u32 FlowEntryNum = XmlUtil::getNumberOfEntries("node", XML);
 	BMG->FlowSection->NodeNum = FlowEntryNum;
 	BMG->FlowSection->SectionSize += FlowEntryNum * 0x8;
 	XmlEntry.reset();
 
-	for (unsigned long i = 0; i < FlowEntryNum; i++) {
+	for (u32 i = 0; i < FlowEntryNum; i++) {
 		std::cout << "\rConverting Flow " << i + 1 << " / " << FlowEntryNum << "..." << std::flush;
 
 		XmlEntry.getNextEntry("node");
@@ -632,13 +639,17 @@ bool BmgWriter::writeBmg(bool pIsLe) {
 
 	BMG->FlowSection->createBranchValiditySection();
 	BMG->FlowSection->addPadding();
-	unsigned long SizeTmp = 0x20 + BMG->InfoSection->SectionSize + BMG->DataSection->SectionSize;
+	u32 SizeTmp = 0x20 + BMG->InfoSection->SectionSize + BMG->DataSection->SectionSize;
 	BMG->Header->FLW1SectionAdr = SizeTmp;
 	SizeTmp += BMG->FlowSection->SectionSize;
 
 	// save BCSV
 	bcsv->sortAlphabet("MessageId");
-	unsigned long size = bcsv->getFileSizeAndAddPadding();
+	u32 size = bcsv->getFileSizeAndAddPadding();
+
+	// do the funny random thing
+	if (mRandomType)
+		randomize(RandSeed);
 
 	// swap endian if necessary
 	if ( (!pIsLe && strncmp(BMG->mFileHolder.mFileData, "MESG", 4) != 0) || (pIsLe && strncmp(BMG->mFileHolder.mFileData, "MESG", 4) == 0) ) {
@@ -661,17 +672,17 @@ bool BmgWriter::writeBmg(bool pIsLe) {
 	return true;
 }
 
-unsigned long BmgWriter::tryAddNewTextData(const wchar_t* pTextData, unsigned long pTextLength) {
-	unsigned long Offset;
+u32 BmgWriter::tryAddNewTextData(const c16* pTextData, u32 pTextLength) {
+	u32 Offset;
 	bool IsTextEqual;
 	//pTextLength *= 2;
 
 	for (Offset = 0; Offset < BMG->DataSection->SectionSize - 8; Offset += 2) {
-		wchar_t* BmgTextData = BMG->DataSection->getTextData(Offset);
+		c16* BmgTextData = BMG->DataSection->getTextData(Offset);
 		IsTextEqual = true;
 
 		// check if the given text can be found
-		for (const wchar_t* t = pTextData; t < pTextData + pTextLength; t++) {
+		for (const c16* t = pTextData; t < pTextData + pTextLength; t++) {
 			if (*t != *BmgTextData) {
 				IsTextEqual = false;
 				break;
@@ -699,7 +710,7 @@ bool BmgWriter::generateTextNode(MESGbmg1::NodeEntryText* pTextNode, XMLEntry& p
 	pTextNode->Unk2 = 0;
 
 	if (pXmlEntry.getEntryInfo("messageID", Value)) {
-		unsigned long TextID = 0;
+		u32 TextID = 0;
 
 		if (bcsv->getValue(bcsv->findElementString("MessageId", Value), "Index", &TextID))
 			pTextNode->TextId = TextID;
@@ -716,7 +727,7 @@ bool BmgWriter::generateTextNode(MESGbmg1::NodeEntryText* pTextNode, XMLEntry& p
 			pTextNode->Validity = 0xFF;
 		}
 		else {
-			long NextFlowID = XmlUtil::getEntryIndexByEntryNameAndInfo("node", "name", Value, XML);
+			s32 NextFlowID = XmlUtil::getEntryIndexByEntryNameAndInfo("node", "name", Value, XML);
 
 			if (NextFlowID >= 0) {
 				pTextNode->NextFlowId = NextFlowID;
@@ -760,7 +771,7 @@ bool BmgWriter::generateConditionNode(MESGbmg1::NodeEntryCondition* pConNode, XM
 	if (pXmlEntry.getEntryInfo("trueNode", Value)) {
 		pConNode->BranchNodeId = BMG->FlowSection->BranchNodeNum;
 
-		long NextFlowID = 0xFFFF;
+		s32 NextFlowID = 0xFFFF;
 		if (strcmp(Value, "none") != 0)
 			NextFlowID = XmlUtil::getEntryIndexByEntryNameAndInfo("node", "name", Value, XML);
 
@@ -774,7 +785,7 @@ bool BmgWriter::generateConditionNode(MESGbmg1::NodeEntryCondition* pConNode, XM
 
 	// add false flow
 	if (pXmlEntry.getEntryInfo("falseNode", Value)) {
-		long NextFlowID = 0xFFFF;
+		s32 NextFlowID = 0xFFFF;
 		if (strcmp(Value, "none") != 0)
 			NextFlowID = XmlUtil::getEntryIndexByEntryNameAndInfo("node", "name", Value, XML);
 
@@ -802,7 +813,7 @@ bool BmgWriter::generateEventNode(MESGbmg1::NodeEntryEvent* pEventNode, XMLEntry
 	if (pXmlEntry.getEntryInfo("nextNode", Value)) {
 		pEventNode->BranchNodeId = BMG->FlowSection->BranchNodeNum;
 		
-		long NextFlowID = 0xFFFF;
+		s32 NextFlowID = 0xFFFF;
 		if (strcmp(Value, "none") != 0)
 			NextFlowID = XmlUtil::getEntryIndexByEntryNameAndInfo("node", "name", Value, XML);
 
@@ -823,7 +834,7 @@ bool BmgWriter::generateEventNode(MESGbmg1::NodeEntryEvent* pEventNode, XMLEntry
 	return true;
 }
 
-void BmgWriter::addBranchNode(unsigned long pFlowEntryID) {
+void BmgWriter::addBranchNode(u32 pFlowEntryID) {
 	*BMG->FlowSection->getBranchNode(BMG->FlowSection->BranchNodeNum) = pFlowEntryID;
 	BMG->FlowSection->BranchNodeNum++;
 	BMG->FlowSection->SectionSize += 2;
@@ -839,6 +850,137 @@ bool BmgWriter::writeInvalidErrorMessage(const char* pMissingInfoName, char* pXm
 	return false;
 }
 
+void BmgWriter::randomize(u32 Seed) {
+	Randomizer r = Randomizer(this, Seed);
+	r.mIsNoLogic = (mRandomType == 2);
+
+	std::cout << "\nStarting Randomizer with Seed " << Seed << (mRandomType == 2 ? " with no logic..." : "...");
+
+	if (mRandomType == 2)
+		r.randomize(NameListNoLogic);
+	else {
+		u32 i = 0;
+		while (NameList[i])
+			r.randomize(NameList[i++]);
+
+		// randomize everything else
+		r.randomize(0);
+	}
+
+	delete[] r.mCanBeUsed;
+	delete[] r.mIsUsedAlready;
+	delete[] r.mSrc;
+}
+
+
+
+Randomizer::Randomizer(BmgWriter* pBmgWrt, u32 Seed) {
+	mRandomSeed = Seed;
+	mIsNoLogic = false;
+	mBmgWrt = pBmgWrt;
+	mIterNum = pBmgWrt->BMG->InfoSection->EntryNum;
+	mSrc = new u32 [mIterNum];
+	mIsUsedAlready = new bool [mIterNum];
+	mCanBeUsed = new bool [mIterNum];
+
+
+	// set up arrays
+
+	for (u32 i = 0; i < mIterNum; i++) {
+		const MESGbmg1::INF1Entry* InfoEntry = pBmgWrt->BMG->InfoSection->getInfoData(i);
+
+		mSrc[i] = InfoEntry->TextAddress;
+
+		// make empty text non-usable
+		if (*mBmgWrt->BMG->DataSection->getTextData(InfoEntry->TextAddress) != 0)
+			mIsUsedAlready[i] = false;
+		else
+			mIsUsedAlready[i] = true;
+	}
+}
+
+void Randomizer::randomize(const c8** pNameList) {
+	// gather data
+	for (u32 i = 0; i < mIterNum; i++) {
+		const MESGbmg1::INF1Entry* pInfoEntry = mBmgWrt->BMG->InfoSection->getInfoData(i);
+
+		// check if the found string is an actual Text or just empty
+		const c8* pMsgName;
+		if (*mBmgWrt->BMG->DataSection->getTextData(pInfoEntry->TextAddress) != 0 && mBmgWrt->bcsv->getValue(i, "MessageId", &pMsgName) && canUse(pMsgName, pNameList))
+			mCanBeUsed[i] = true;
+		else
+			mCanBeUsed[i] = false;
+	}
+
+	// randomize and write data
+	for (u32 i = 0; i < mIterNum; i++) {
+		u32 randTextEntryNum;
+
+		// skip if the current entry is empty or cannot be used
+		if (!mCanBeUsed[i])
+			continue;
+
+		// get random text address
+		while (true) {
+			randTextEntryNum = getRandom(mIterNum);
+
+			if (randTextEntryNum < mIterNum && !mIsUsedAlready[randTextEntryNum] && mCanBeUsed[randTextEntryNum]) {
+				mIsUsedAlready[randTextEntryNum] = true;
+				break;
+			}
+		}
+
+		mBmgWrt->BMG->InfoSection->getInfoData(i)->TextAddress = mSrc[randTextEntryNum];
+	}
+}
+
+bool Randomizer::canUse(const c8* pName, const c8** pNameList) {
+	u32 i = 0;
+
+	// global exceptions
+	for (u32 s = 0; s < sizeof(ExceptionNameTable)/sizeof(c8*); s++) {
+		if (!strcmp(pName, ExceptionNameTable[s]))
+			return false;
+	}
+
+	if (mIsNoLogic)
+		return true;
+
+	if (pNameList) {
+		while (pNameList[i]) {
+			// remove from list
+			if (*pNameList[i] == '-') {
+				if (strstr(pName, pNameList[i++]+1) == pName)
+					return false;
+			}
+			else if (strstr(pName, pNameList[i++]) == pName)
+				return true;
+		}
+		return false;
+	}
+	else {
+		// check if the name is not listed anywhere. if so then return true
+		while (NameList[i]) {
+			if (canUse(pName, NameList[i++]))
+				return false;
+		}
+		return true;
+	}
+}
+
+u32 Randomizer::getRandom(u32 range) {
+	u32 Var1 = mRandomSeed;
+    float* Var2;
+
+    Var1 = Var1 * 0x19660D + 0x3C6EF35F;
+    mRandomSeed = Var1;
+    Var1 = Var1 >> 9 | 0x3F800000;
+    Var2 = (float*)(&Var1);
+    return (*Var2 - 1.0f) * range;
+}
+
+
+
 
 
 
@@ -846,6 +988,7 @@ bool BmgWriter::writeInvalidErrorMessage(const char* pMissingInfoName, char* pXm
 BmgTextGenerator::BmgTextGenerator(const XMLEntry* pXmlParentEntry) {
 	mXmlSubEntry = XMLSubEntry(pXmlParentEntry);
 	mMessagePos = 0;
+	mIsRandomActive = false;
 }
 
 bool BmgTextGenerator::createMessage() {
@@ -879,10 +1022,10 @@ bool BmgTextGenerator::createMessage() {
 				if (mXmlSubEntry.mEntryEnd != 0)
 					XmlDataParser = mXmlSubEntry.mEntryEnd - 1;
 				else
-					writeChar((unsigned char)*XmlDataParser);
+					writeChar((u8)*XmlDataParser);
 			}
 			else
-				writeChar((unsigned char)*XmlDataParser);
+				writeChar((u8)*XmlDataParser);
 		}
 
 		XmlDataParser++;
@@ -898,7 +1041,7 @@ bool BmgTextGenerator::createMessage() {
 }
 
 void BmgTextGenerator::createAndAddEventData(const char* pXmlEntry) {
-	unsigned long MessagePosTmp = mMessagePos;
+	u32 MessagePosTmp = mMessagePos;
 	char TagData[128];
 
 	// check for event
@@ -934,7 +1077,7 @@ void BmgTextGenerator::createAndAddEventData(const char* pXmlEntry) {
 		writeChar(0);					// write event type type
 		if (mXmlSubEntry.getEntryInfo("src", TagData)) {
 			// copy sound name into bmg text
-			for (unsigned long counter = 0; counter < strlen(TagData); counter++)
+			for (u32 counter = 0; counter < strlen(TagData); counter++)
 				writeSingleChar(TagData[counter], true);
 		}
 		else
@@ -976,54 +1119,72 @@ void BmgTextGenerator::createAndAddEventData(const char* pXmlEntry) {
 			writeChar(0);
 	}
 	else if (mXmlSubEntry.getEntry("valInt", pXmlEntry)) {
-		writeEvent(6, 14);
-		if (mXmlSubEntry.getEntryInfo("arg1", TagData)) writeChar(atoi(TagData));
-		else writeChar(0);
-		if (mXmlSubEntry.getEntryInfo("arg2", TagData)) writeLong(atoi(TagData));
-		else writeLong(0);
-		if (mXmlSubEntry.getEntryInfo("arg3", TagData)) writeLong(atoi(TagData));
-		else writeLong(0);
+		if (!mIsRandomActive) {
+			writeEvent(6, 14);
+			if (mXmlSubEntry.getEntryInfo("arg1", TagData)) writeChar(atoi(TagData));
+			else writeChar(0);
+			if (mXmlSubEntry.getEntryInfo("arg2", TagData)) writeLong(atoi(TagData));
+			else writeLong(0);
+			if (mXmlSubEntry.getEntryInfo("arg3", TagData)) writeLong(atoi(TagData));
+			else writeLong(0);
+		}
+		else {
+			writeChar(u'0');
+		}
 	}
 	else if (mXmlSubEntry.getEntry("valStr", pXmlEntry)) {
-		writeEvent(7, 14);
-		if (mXmlSubEntry.getEntryInfo("arg1", TagData)) writeChar(atoi(TagData));
-		else writeChar(0);
-		if (mXmlSubEntry.getEntryInfo("arg2", TagData)) writeLong(atoi(TagData));
-		else writeLong(0);
-		if (mXmlSubEntry.getEntryInfo("arg3", TagData)) writeLong(atoi(TagData));
-		else writeLong(0);
+		if (!mIsRandomActive) {
+			writeEvent(7, 14);
+			if (mXmlSubEntry.getEntryInfo("arg1", TagData)) writeChar(atoi(TagData));
+			else writeChar(0);
+			if (mXmlSubEntry.getEntryInfo("arg2", TagData)) writeLong(atoi(TagData));
+			else writeLong(0);
+			if (mXmlSubEntry.getEntryInfo("arg3", TagData)) writeLong(atoi(TagData));
+			else writeLong(0);
+		}
+	}
+	else if (mXmlSubEntry.getEntry("score", pXmlEntry)) {
+		if (!mIsRandomActive) {
+			writeEvent(9, 6);
+			if (mXmlSubEntry.getEntryInfo("arg", TagData)) writeChar(atoi(TagData));
+		}
+		else {
+			writeChar(u'0');
+			writeChar(u':');
+			writeChar(u'0');
+			writeChar(u':');
+			writeChar(u'0');
+		}
 	}
 }
 
 
-void BmgTextGenerator::writeChar(wchar_t pChar) {
-	mMessageData[mMessagePos] = pChar;
-	mMessagePos++;
+void BmgTextGenerator::writeChar(c16 pChar) {
+	mMessageData[mMessagePos++] = pChar;
 }
 
-void BmgTextGenerator::writeEvent(unsigned char pEventType, unsigned char pLength) {
+void BmgTextGenerator::writeEvent(u8 pEventType, u8 pLength) {
 	// write event tag start char
 	writeChar(0x1A);
-	unsigned char* WriteAdr = (unsigned char*)(&mMessageData[mMessagePos]);
-	*WriteAdr = pLength;
-	WriteAdr++;
-	*WriteAdr = pEventType;
+	u8* WriteAdr = (u8*)(&mMessageData[mMessagePos]);
+	WriteAdr[0] = pLength;
+	WriteAdr[1] = pEventType;
 	mMessagePos++;
 }
 
-void BmgTextGenerator::writeEventLength(unsigned long pEventStartOffset) {
-	unsigned char* WriteAdr = (unsigned char*)(&mMessageData[pEventStartOffset + 1]);
+void BmgTextGenerator::writeEventLength(u32 pEventStartOffset) {
+	u8* WriteAdr = (u8*)(&mMessageData[pEventStartOffset + 1]);
 	*WriteAdr = (mMessagePos - pEventStartOffset) * 2;
 }
 
-void BmgTextGenerator::writeSingleChar(unsigned char pChar, bool pSide) {
+void BmgTextGenerator::writeSingleChar(u8 pChar, bool pSide) {
 	writeChar(0);
-	unsigned char* WriteAdr = (unsigned char*)(&mMessageData[mMessagePos - 1]) + pSide;
+	u8* WriteAdr = (u8*)(&mMessageData[mMessagePos - 1]) + pSide;
 	*WriteAdr = pChar;
 }
 
-void BmgTextGenerator::writeLong(long pLong) {
-	long* WriteAdr = (long*)(&mMessageData[mMessagePos]);
+void BmgTextGenerator::writeLong(s32 pLong) {
+	s32* WriteAdr = (s32*)(&mMessageData[mMessagePos]);
 	*WriteAdr = pLong;
 	mMessagePos += 2;
 }
@@ -1063,6 +1224,7 @@ int commandSearchValue(int argc, char* argv[], const char* pCommandToSearchFor) 
 int main(int argc, char* argv[]) {
 	bool isModeConvertToXML = false;
 	bool isOutputLittleEndian = false;
+	bool randomize = false;
 	const char* BmgFileName = "Message.bmg";
 	const char* MsgTblFileName = "MessageId.tbl";
 	const char* XmlFileName = "Message.xml";
@@ -1071,10 +1233,10 @@ int main(int argc, char* argv[]) {
 	int XmlFileNameInd = commandSearchValue(argc, argv, "-xml");
 
 	if (commandSearch(argc, argv, "-h") >= 0) {
-		std::cout << "List of arguments:\n";
-		std::cout << "Tomato.exe -bmg2xml -bmg <BMGInputFile> -tbl <TBLInputFile> [-xml <XMLOutputFile>] convert a .bmg / .tbl to .xml\n";
-		std::cout << "Tomato.exe -xml2bmg -xml <XMLInputFile> [-bmg <BMGOutputFile>] [-tbl <TBLOutputFile>] [-le (output little endian)] convert an .xml to .bmg / .tbl\n";
-		std::cout << "Arguments in square brackets are optional.\n";
+		std::cout << "List of arguments:\n\
+" << argv[0] << " -bmg2xml -bmg <BMGInputFile> -tbl <TBLInputFile> [-xml <XMLOutputFile>] convert a .bmg / .tbl to .xml\n\
+" << argv[0] << " -xml2bmg -xml <XMLInputFile> [-bmg <BMGOutputFile>] [-tbl <TBLOutputFile>] [-le (output little endian)] [-r <RandomSeed>] convert an .xml to .bmg / .tbl\n\
+Arguments in square brackets are optional.\n";
 		return 0;
 	}
 
@@ -1097,6 +1259,7 @@ int main(int argc, char* argv[]) {
 		if (BmgFileNameInd >= 0) BmgFileName = argv[BmgFileNameInd];
 		if (MsgTblFileNameInd >= 0) MsgTblFileName = argv[MsgTblFileNameInd];
 		if (commandSearch(argc, argv, "-le") >= 0) isOutputLittleEndian = true;
+		if (commandSearch(argc, argv, "-r") >= 0) randomize = true;
 	}
 	else if (argc >= 2) {
 		std::cout << "Too few or wrong arguments.\nUse -h to view a list of arguments.\n";
@@ -1140,8 +1303,20 @@ int main(int argc, char* argv[]) {
 	}
 	else {
 		BmgWriter BmgWr = BmgWriter(XmlFileName, BmgFileName, MsgTblFileName);
+		BmgWr.mRandomType = randomize;
 
-		if (!BmgWr.writeBmg(isOutputLittleEndian))
+		int RandomSeed = commandSearchValue(argc, argv, "-r");
+		u32 RandomSeedVal = 0;
+		if (RandomSeed >= 0) {
+			if (*argv[RandomSeed] == 'r') {
+				BmgWr.mRandomType++;
+				RandomSeedVal = atoi(argv[RandomSeed]+1);
+			}
+			else
+				RandomSeedVal = atoi(argv[RandomSeed]);
+		}
+
+		if (!BmgWr.writeBmg(isOutputLittleEndian, RandomSeedVal))
 			std::cout << "An error occured while trying to convert the XML to BMG.\n";
 		else {
 			std::cout << "\nFinished!\n";

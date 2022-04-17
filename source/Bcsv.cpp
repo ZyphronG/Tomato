@@ -1,7 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
-#include "Bcsv.h"
+#include "../include/Bcsv.h"
 
 #define BCSV_MAX_ALOC_SIZE 0x80000
 
@@ -42,8 +42,8 @@ bool BCSV::isEndianCorrect() {
 }
 
 void BCSV::swapEndian() {
-    unsigned long EntryNumTmp = mEntryNum;
-    unsigned long FieldNumTmp = mFieldNum;
+    u32 EntryNumTmp = mEntryNum;
+    u32 FieldNumTmp = mFieldNum;
 
     mEntryNum = _byteswap_ulong(mEntryNum);
 	mFieldNum = _byteswap_ulong(mFieldNum);
@@ -55,21 +55,21 @@ void BCSV::swapEndian() {
         FieldNumTmp = mFieldNum;
     }
 
-    for (unsigned long i = 0; i < FieldNumTmp; i++) {
+    for (u32 i = 0; i < FieldNumTmp; i++) {
         Field* FieldTmp = &mFields[i];
         FieldTmp->mFieldHash = _byteswap_ulong(FieldTmp->mFieldHash);
         FieldTmp->mDefaultValue = _byteswap_ulong(FieldTmp->mDefaultValue);
         FieldTmp->mShift = _byteswap_ushort(FieldTmp->mShift);
     }
 
-    for (unsigned long i = 0; i < EntryNumTmp; i++)
+    for (u32 i = 0; i < EntryNumTmp; i++)
         swapEndianEntry(i);
 }
 
-void BCSV::swapEndianEntry(unsigned long Index) {
-    unsigned long FieldNumTmp = mFieldNum;
-    unsigned long DataAdrTmp = mDataAdr;
-    unsigned long EntrySizeTmp = mEntrySize;
+void BCSV::swapEndianEntry(u32 Index) {
+    u32 FieldNumTmp = mFieldNum;
+    u32 DataAdrTmp = mDataAdr;
+    u32 EntrySizeTmp = mEntrySize;
 
     if (!isEndianCorrect()) {
         FieldNumTmp = _byteswap_ulong(FieldNumTmp);
@@ -79,10 +79,10 @@ void BCSV::swapEndianEntry(unsigned long Index) {
 
     char* CurrDataAddress = (char*)this + DataAdrTmp + Index * EntrySizeTmp;
     
-    for (unsigned long i = 0; i < FieldNumTmp; i++) {
-        unsigned short ShiftTmp;
-        unsigned short* CurrDataAddressShort;
-        unsigned long* CurrDataAddressLong;
+    for (u32 i = 0; i < FieldNumTmp; i++) {
+        u16 ShiftTmp;
+        u16* CurrDataAddressShort;
+        u32* CurrDataAddressLong;
 
         if (!isEndianCorrect())
             ShiftTmp = _byteswap_ushort(mFields[i].mShift);
@@ -96,12 +96,12 @@ void BCSV::swapEndianEntry(unsigned long Index) {
                 break;
             // short
             case Short:
-                CurrDataAddressShort = (unsigned short*)(CurrDataAddress + ShiftTmp);
+                CurrDataAddressShort = (u16*)(CurrDataAddress + ShiftTmp);
                 *CurrDataAddressShort = _byteswap_ushort(*CurrDataAddressShort);
                 break;
             // long, float, string offset
             default:
-                CurrDataAddressLong = (unsigned long*)(CurrDataAddress + ShiftTmp);
+                CurrDataAddressLong = (u32*)(CurrDataAddress + ShiftTmp);
                 *CurrDataAddressLong = _byteswap_ulong(*CurrDataAddressLong);
                 break;
         }
@@ -109,9 +109,9 @@ void BCSV::swapEndianEntry(unsigned long Index) {
 }
 
 const Field* BCSV::getFieldInfo(const char* FieldName) const {
-    long Hash = calcHash(FieldName);
+    s32 Hash = calcHash(FieldName);
 
-    for (unsigned long i = 0; i < mFieldNum; i++) {
+    for (u32 i = 0; i < mFieldNum; i++) {
         if (mFields[i].mFieldHash == Hash) 
             return &mFields[i];
     }
@@ -119,14 +119,14 @@ const Field* BCSV::getFieldInfo(const char* FieldName) const {
     return 0;
 }
 
-unsigned long BCSV::findElementString(const char* FieldName, const char* ValueToSearchFor) const {
+u32 BCSV::findElementString(const char* FieldName, const char* ValueToSearchFor) const {
     const Field* field = getFieldInfo(FieldName);
     const char* InputTemp;
 
     if (!field)
         return mEntryNum;
 
-    for (unsigned long i = 0; i < mEntryNum; i++) {
+    for (u32 i = 0; i < mEntryNum; i++) {
 
         if (!getValueFast(i, field, &InputTemp))
             return mEntryNum;  // returnd false if the data type couldn't be found
@@ -139,14 +139,14 @@ unsigned long BCSV::findElementString(const char* FieldName, const char* ValueTo
 }
 
 template<typename T>
-unsigned long BCSV::findElement(const char* FieldName, T ValueToSearchFor) const {
+u32 BCSV::findElement(const char* FieldName, T ValueToSearchFor) const {
     const Field* field = getFieldInfo(FieldName);
     T InputTemp = 0;
 
     if (!field)
         return mEntryNum;
 
-    for (unsigned long i = 0; i < mEntryNum; i++) {
+    for (u32 i = 0; i < mEntryNum; i++) {
 
         if (!getValueFast(i, field, &InputTemp))
             return mEntryNum;  // returnd false if the data type couldn't be found
@@ -158,7 +158,7 @@ unsigned long BCSV::findElement(const char* FieldName, T ValueToSearchFor) const
     return mEntryNum;
 }
 
-bool BCSV::getValue(unsigned long Index, const char* FieldName, void* ValuePtr) const {
+bool BCSV::getValue(u32 Index, const char* FieldName, void* ValuePtr) const {
     const Field* field = getFieldInfo(FieldName);
 
     if (Index < mEntryNum && field && getValueFast(Index, field, ValuePtr))
@@ -167,15 +167,15 @@ bool BCSV::getValue(unsigned long Index, const char* FieldName, void* ValuePtr) 
         return false;
 }
 
-bool BCSV::getValueFast(unsigned long Index, const Field* pField, void* ValuePtr) const {
+bool BCSV::getValueFast(u32 Index, const Field* pField, void* ValuePtr) const {
     char* ValueAdr = (char*)this + mDataAdr + Index * mEntrySize + pField->mShift;
 
     switch (pField->mDataType) {
         // long
         case Long:
         case _Long: {
-            long* ReturnVal = (long*)ValuePtr;
-            *ReturnVal = *(long*)ValueAdr;
+            s32* ReturnVal = (s32*)ValuePtr;
+            *ReturnVal = *(s32*)ValueAdr;
             return true;
         }
 
@@ -195,8 +195,8 @@ bool BCSV::getValueFast(unsigned long Index, const Field* pField, void* ValuePtr
 
         // short
         case Short: {
-            short* ReturnVal = (short*)ValuePtr;
-            *ReturnVal = *(short*)ValueAdr;
+            s16* ReturnVal = (s16*)ValuePtr;
+            *ReturnVal = *(s16*)ValueAdr;
             return true;
         }
 
@@ -210,7 +210,7 @@ bool BCSV::getValueFast(unsigned long Index, const Field* pField, void* ValuePtr
         // string offset
         case StringOffset: {
             const char** ReturnVal = (const char**)ValuePtr;
-            *ReturnVal = (const char*)this + mDataAdr + mEntryNum*mEntrySize + *(unsigned long*)ValueAdr;
+            *ReturnVal = (const char*)this + mDataAdr + mEntryNum*mEntrySize + *(u32*)ValueAdr;
             return true;
         }
 
@@ -220,9 +220,9 @@ bool BCSV::getValueFast(unsigned long Index, const Field* pField, void* ValuePtr
     }
 }
 
-long BCSV::calcHash(const char* InputStr) {
+s32 BCSV::calcHash(const char* InputStr) {
     char CurrChar;
-    long Output;
+    s32 Output;
   
     Output = 0;
     while(true) {
@@ -244,7 +244,7 @@ long BCSV::calcHash(const char* InputStr) {
 
 
 
-BCSV* BCSV::createNewBcsv(unsigned long EntryNum) {
+BCSV* BCSV::createNewBcsv(u32 EntryNum) {
     //allocate 500 KB for the creation of the bcsv and clean it
     char* bcsvInit = new char[BCSV_MAX_ALOC_SIZE];
     BCSV* returnBcsv = (BCSV*)bcsvInit;
@@ -285,7 +285,7 @@ void BCSV::addField(const char* FieldName, DataType type) {
     mFieldNum++;
 }
 
-unsigned short BCSV::calcShift() {
+u16 BCSV::calcShift() {
     // get the shift from the field before (if there exists a field before the current one)
     // and add the size of the data type
     if (mFieldNum > 0)
@@ -294,7 +294,7 @@ unsigned short BCSV::calcShift() {
     return 0;
 }
 
-unsigned char BCSV::getDataSize(unsigned char type) {
+u8 BCSV::getDataSize(u8 type) {
     switch (type) {
     case String:
         return 0x20;
@@ -308,7 +308,7 @@ unsigned char BCSV::getDataSize(unsigned char type) {
 }
 
 
-void BCSV::writeEntry(unsigned long Index, const char* FieldName, const void* value) {
+void BCSV::writeEntry(u32 Index, const char* FieldName, const void* value) {
     const Field* field = getFieldInfo(FieldName);
 
     if (!field) {
@@ -321,8 +321,8 @@ void BCSV::writeEntry(unsigned long Index, const char* FieldName, const void* va
     switch (field->mDataType) {
     case Long:
     case _Long: {
-        long* ValueAdrLong = (long*)ValueAdr;
-        *ValueAdrLong = *(long*)value;
+        s32* ValueAdrLong = (s32*)ValueAdr;
+        *ValueAdrLong = *(s32*)value;
         break;
         }
     case String: {
@@ -335,8 +335,8 @@ void BCSV::writeEntry(unsigned long Index, const char* FieldName, const void* va
         break;
         }
     case Short: {
-        short* ValueAdrShort = (short*)ValueAdr;
-        *ValueAdrShort = *(short*)value;
+        s16* ValueAdrShort = (s16*)ValueAdr;
+        *ValueAdrShort = *(s16*)value;
         break;
         }
     case Char: {
@@ -344,18 +344,18 @@ void BCSV::writeEntry(unsigned long Index, const char* FieldName, const void* va
         break;
         }
     case StringOffset: {
-        unsigned long* ValueAdrULong = (unsigned long*)ValueAdr;
+        u32* ValueAdrULong = (u32*)ValueAdr;
         *ValueAdrULong = tryAddString((const char*)value);
         break;
         }
     }
 }
 
-unsigned long BCSV::tryAddString(const char* str) {
-	unsigned long i = 0;
+u32 BCSV::tryAddString(const char* str) {
+	u32 i = 0;
     char* StringTable = (char*)this + mDataAdr + mEntryNum * mEntrySize;
     // hidden StringTable watcher at the end of the allocated memory
-    unsigned long* StringTableWatcher = (unsigned long*)((char*)this + BCSV_MAX_ALOC_SIZE - 0x4);
+    u32* StringTableWatcher = (u32*)((char*)this + BCSV_MAX_ALOC_SIZE - 0x4);
 
 	while (true) {
 		// check if we reached the current end of the string table
@@ -374,10 +374,10 @@ unsigned long BCSV::tryAddString(const char* str) {
 	return i;
 }
 
-unsigned long BCSV::getFileSizeAndAddPadding() {
+u32 BCSV::getFileSizeAndAddPadding() {
     char* StringTable = (char*)this + mDataAdr + mEntryNum * mEntrySize;
-    unsigned long Size = 0;
-    unsigned long* StringTableWatcher = (unsigned long*)((char*)this + BCSV_MAX_ALOC_SIZE - 0x4);
+    u32 Size = 0;
+    u32* StringTableWatcher = (u32*)((char*)this + BCSV_MAX_ALOC_SIZE - 0x4);
 
     Size = (StringTable + *StringTableWatcher) - (char*)this;
 
@@ -402,12 +402,12 @@ void BCSV::sortAlphabet(const char* pFieldName) {
 
     // set up string container
     char** Strings = new char*[mEntryNum];
-    for (unsigned long i = 0; i < mEntryNum; i++)
+    for (u32 i = 0; i < mEntryNum; i++)
         getValueFast(i, field, &Strings[i]);
 
-    for (unsigned long i = 0; i < mEntryNum; i++) {
+    for (u32 i = 0; i < mEntryNum; i++) {
         const char* CurrentHighestString = 0;
-        unsigned long StringIter = 0;
+        u32 StringIter = 0;
         // get next string to check
         while (!CurrentHighestString) {
             CurrentHighestString = Strings[StringIter];
@@ -415,7 +415,7 @@ void BCSV::sortAlphabet(const char* pFieldName) {
         }
 
         // iterate through all strings
-        for (unsigned long f = 0; f < mEntryNum; f++) {
+        for (u32 f = 0; f < mEntryNum; f++) {
             const char* CurrentString = Strings[f];
             if (CurrentString && isStringInAlphabetBefore(CurrentString, CurrentHighestString)) {
                 StringIter = f;     // store this so we can easily retreive the field entry ID as well as the string itself

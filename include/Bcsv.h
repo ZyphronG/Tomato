@@ -1,11 +1,11 @@
 #pragma once
 
 struct Field {
-    long mFieldHash; //_0
-    long mDefaultValue;  //_4
-    unsigned short mShift;   //_8
-    unsigned char mUnk;  //_A
-    unsigned char mDataType; //_B
+    s32 mFieldHash; //_0
+    s32 mDefaultValue;  //_4
+    u16 mShift;   //_8
+    u8 mUnk;  //_A
+    u8 mDataType; //_B
 };
 
 class BCSV {
@@ -17,17 +17,17 @@ public:
 
     bool isEndianCorrect();
     void swapEndian();
-    void swapEndianEntry(unsigned long Index);
+    void swapEndianEntry(u32 Index);
 
     const Field* getFieldInfo(const char* FieldName) const;
     
-    unsigned long findElementString(const char* FieldName, const char* ValueToSearchFor) const;
+    u32 findElementString(const char* FieldName, const char* ValueToSearchFor) const;
     template<typename T>
-    unsigned long findElement(const char* FieldName, T ValueToSearchFor) const;
-    bool getValue(unsigned long Index, const char* FieldName, void* ValuePtr) const;
-    bool getValueFast(unsigned long Index, const Field*, void* ValuePtr) const;
+    u32 findElement(const char* FieldName, T ValueToSearchFor) const;
+    bool getValue(u32 Index, const char* FieldName, void* ValuePtr) const;
+    bool getValueFast(u32 Index, const Field*, void* ValuePtr) const;
 
-    static long calcHash(const char*);
+    static s32 calcHash(const char*);
 
 
 
@@ -43,20 +43,20 @@ public:
         StringOffset = 6
     };
 
-    static BCSV* createNewBcsv(unsigned long EntryNum);
+    static BCSV* createNewBcsv(u32 EntryNum);
     void addField(const char* FieldName, DataType type);
-    unsigned short calcShift();
-    static unsigned char getDataSize(unsigned char type);
-    void writeEntry(unsigned long Index, const char* FieldName, const void* value);
-    unsigned long tryAddString(const char* str);
-    unsigned long getFileSizeAndAddPadding();
+    u16 calcShift();
+    static u8 getDataSize(u8 type);
+    void writeEntry(u32 Index, const char* FieldName, const void* value);
+    u32 tryAddString(const char* str);
+    u32 getFileSizeAndAddPadding();
     void sortAlphabet(const char* pFieldName);
 
 
-    unsigned long mEntryNum;
-    unsigned long mFieldNum;
-    unsigned long mDataAdr;
-    unsigned long mEntrySize;
+    u32 mEntryNum;
+    u32 mFieldNum;
+    u32 mDataAdr;
+    u32 mEntrySize;
     Field mFields[];
 
     // special functions for sorting the bcsv

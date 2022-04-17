@@ -7,7 +7,8 @@ else
 endif
 
 $(TOMATO): source/Tomato.cpp
-	$(CPP) -Os -I include/ -fno-rtti -fno-exceptions -ffunction-sections -fdata-sections -Wl,--gc-sections -s -Wno-multichar -Wall -o $@ $<
+	$(CPP) -Os -s -I include/ -fwhole-program -Wno-multichar -Wall -o $@ $<
+	
 
 clean:
 	rm -f $(TOMATO)

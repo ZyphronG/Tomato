@@ -1,12 +1,12 @@
-#include "XML.h"
+#include "../include/XML.h"
 #include <iostream>
 #include <cstring>
 
 
-unsigned long XmlUtil::getNumberOfEntries(const char* pEntryName, FileHolder* pXmlFile) {
+u32 XmlUtil::getNumberOfEntries(const char* pEntryName, FileHolder* pXmlFile) {
     XMLEntry XmlEntry = XMLEntry(pXmlFile);
-    unsigned long XmlOffset = 0;
-    unsigned long EntryCount = 0;
+    u32 XmlOffset = 0;
+    u32 EntryCount = 0;
 
     while (true) {
 		if (!XmlEntry.findEntry(pEntryName, XmlOffset))
@@ -23,10 +23,10 @@ unsigned long XmlUtil::getNumberOfEntries(const char* pEntryName, FileHolder* pX
     return EntryCount;
 }
 
-bool XmlUtil::getEntryByIndex(const char* pEntryName, unsigned long pIndex, FileHolder* pXmlFile, XMLEntry* pXmlEntry) {
+bool XmlUtil::getEntryByIndex(const char* pEntryName, u32 pIndex, FileHolder* pXmlFile, XMLEntry* pXmlEntry) {
     XMLEntry XmlEntry = XMLEntry(pXmlFile);
-    unsigned long XmlOffset = 0;
-    unsigned long EntryCount = 0;
+    u32 XmlOffset = 0;
+    u32 EntryCount = 0;
 
     while (true) {
 		if (!XmlEntry.findEntry(pEntryName, XmlOffset))
@@ -47,8 +47,8 @@ bool XmlUtil::getEntryByIndex(const char* pEntryName, unsigned long pIndex, File
     return true;
 }
 
-unsigned long XmlUtil::countLines(const char* pStartString, const char* pEndString) {
-    unsigned long LineCount = 1;
+u32 XmlUtil::countLines(const char* pStartString, const char* pEndString) {
+    u32 LineCount = 1;
 
     while (pStartString < pEndString) {
         if (*pStartString == '\n')
@@ -96,10 +96,10 @@ bool XmlUtil::isEqualEntryName(const char* pEntryName, const char* pXmlEntry) {
     }
 }
 
-long XmlUtil::getEntryIndexByEntryNameAndInfo(const char* pEntryName, const char* pInfoName, const char* pInfoValue, FileHolder* pXmlFile) {
+s32 XmlUtil::getEntryIndexByEntryNameAndInfo(const char* pEntryName, const char* pInfoName, const char* pInfoValue, FileHolder* pXmlFile) {
     XMLEntry XmlEntry = XMLEntry(pXmlFile);
     char Value[256];
-    long IndexCounter = 0;
+    s32 IndexCounter = 0;
 
     while (XmlEntry.getNextEntry(pEntryName)) {
         XmlEntry.getEntryInfo(pInfoName, Value);
@@ -134,7 +134,7 @@ XMLEntry::XMLEntry(FileHolder* pFileHolder) {
 
 
 
-bool XMLEntry::findEntry(const char* pEntryName, unsigned long pOffset, bool pOnlySearchForEntryStart) {
+bool XMLEntry::findEntry(const char* pEntryName, u32 pOffset, bool pOnlySearchForEntryStart) {
     mEntryName = pEntryName;
     mEntryStart = 0;
     mEntryEnd = 0;
@@ -243,8 +243,8 @@ char* XMLEntry::getEndOfLongEntry(char* pXmlParser) {
 
 
 bool XMLEntry::getEntryInfo(const char* pEntryInfoName, char* pOutputString) {
-    unsigned long EntryInfoNameParser = 0;
-    unsigned long EntryInfoNameLength = strlen(pEntryInfoName);
+    u32 EntryInfoNameParser = 0;
+    u32 EntryInfoNameLength = strlen(pEntryInfoName);
     char* XmlFileParser = mEntryStart + strlen(mEntryName) + 1;
 
     bool isInQuote = false;
@@ -349,7 +349,7 @@ bool XMLSubEntry::findSubEntry(const char* pEntryName) {
     }
 }
 
-bool XMLSubEntry::findSubEntry(const char* pEntryName, unsigned long pOffset) {
+bool XMLSubEntry::findSubEntry(const char* pEntryName, u32 pOffset) {
     if (mXmlParentEntry->mIsLongEntry && findEntry(pEntryName, (mXmlParentEntry->mEntryStart + pOffset) - mXmlParentEntry->mXmlFile->mFileData) && mEntryStart < mXmlParentEntry->mEntryEnd)
         return true;
     else {
