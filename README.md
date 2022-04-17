@@ -18,7 +18,7 @@ Tomato -bmg2xml -bmg <BMGInputFile> -tbl <TBLInputFile> [-xml <XMLOutputFile>]
 ```
 or to convert from .xml to .bmg / .tbl use:
 ```
-Tomato -xml2bmg -xml <XMLInputFile> [-bmg <BMGOutputFile>] [-tbl <TBLOutputFile>] [-le (output little endian)]
+Tomato -xml2bmg -xml <XMLInputFile> [-bmg <BMGOutputFile>] [-tbl <TBLOutputFile>] [-le (output little endian)] [-r <RandomSeed>]
 ```
 Arguments in square brackets are optional. The order of arguments does not matter.
 
