@@ -1,3 +1,7 @@
+This tool is deprecated and will be replaced with a new version made from scratch in the future.
+It will fix a lot of issues (including SM3DAS support) and have much better code.
+
+
 # Tomato
 ###### (please pronounce it british)
 
